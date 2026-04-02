@@ -668,6 +668,7 @@ mkdir -p "$DCONF_DB"
 dbus-launch dconf load / <<DCONF
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
+accent-color='green'
 font-name='Inter Regular 11'
 document-font-name='Inter Regular 11'
 monospace-font-name='JetBrains Mono Regular 10'
