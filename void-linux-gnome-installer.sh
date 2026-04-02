@@ -72,21 +72,14 @@ echo ">>> Adding non-free repository..."
 sudo xbps-install -S -y void-repo-nonfree
 
 ###############################################################################
-# Install recommended packages, dev packages, and dependencies
-# (Merged from both Reddit post and gist)
+# Install recommended packages
 ###############################################################################
-echo ">>> Installing recommended + dev packages..."
+echo ">>> Installing recommended packages..."
 sudo xbps-install -y curl wget git xz unzip zip nano vim gptfdisk gparted \
-  xtools mtools mlocate ntfs-3g fuse-exfat bash-completion \
+  mtools mlocate ntfs-3g fuse-exfat bash-completion \
   linux-mainline linux-mainline-headers \
-  gtksourceview4 ffmpeg htop \
-  autoconf automake bison m4 make libtool flex meson ninja optipng sassc \
-  go gcc pkg-config zsh efibootmgr pciutils openssh
-
-# Webkit and JSON libraries (from Reddit post)
-# NOTE: webkit2gtk/webkit2gtk-devel removed from Void — replaced by libwebkit2gtk41
-sudo xbps-install -y libwebkit2gtk41-devel libwebkit2gtk41 \
-  json-glib-devel json-glib
+  ffmpeg htop zsh efibootmgr pciutils openssh \
+  sassc
 
 # GVFS backends for GNOME (network shares, MTP, photos, etc.)
 sudo xbps-install -y gvfs-smb samba gvfs-goa gvfs-gphoto2 gvfs-mtp \
@@ -132,7 +125,7 @@ sudo xbps-install -y NetworkManager NetworkManager-openvpn \
 
 # Audio: PipeWire + WirePlumber (replaces PulseAudio from both guides)
 # Ref: https://docs.voidlinux.org/config/media/pipewire.html
-sudo xbps-install -y pipewire pulseaudio-utils
+sudo xbps-install -y pipewire alsa-pipewire pulseaudio-utils
 
 # Configure WirePlumber session manager
 sudo mkdir -p /etc/pipewire/pipewire.conf.d
@@ -142,6 +135,11 @@ sudo ln -sf /usr/share/examples/wireplumber/10-wireplumber.conf \
 # Enable PulseAudio compatibility layer
 sudo ln -sf /usr/share/examples/pipewire/20-pipewire-pulse.conf \
   /etc/pipewire/pipewire.conf.d/
+
+# Route ALSA applications through PipeWire (per Void docs)
+sudo mkdir -p /etc/alsa/conf.d
+sudo ln -sf /usr/share/alsa/alsa.conf.d/50-pipewire.conf /etc/alsa/conf.d/
+sudo ln -sf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf /etc/alsa/conf.d/
 
 # Autostart PipeWire on graphical login
 sudo ln -sf /usr/share/applications/pipewire.desktop /etc/xdg/autostart/
@@ -500,14 +498,28 @@ sudo ./install.sh
 cd ~
 rm -rf /tmp/Borealis-cursors
 
-# --- Wallpaper ---
+# --- Wallpaper + GRUB Theme ---
 # Ref: https://github.com/oSoWoSo/void-artwork (CC-BY-4.0 licensed)
-echo "   Downloading Void Linux wallpapers..."
+# Clone once, copy out wallpapers and GRUB theme, then clean up.
+echo "   Downloading Void Linux artwork (wallpapers + GRUB theme)..."
+rm -rf /tmp/void-artwork
+git clone --depth 1 -b website https://github.com/oSoWoSo/void-artwork /tmp/void-artwork
+
+# Copy wallpapers
 sudo mkdir -p /usr/share/backgrounds/void
-sudo curl -sSLo /usr/share/backgrounds/void/void-wallpaper.png \
-  "https://raw.githubusercontent.com/oSoWoSo/void-artwork/website/assets/hires/027.png"
-sudo curl -sSLo /usr/share/backgrounds/void/void-wallpaper-2.png \
-  "https://raw.githubusercontent.com/oSoWoSo/void-artwork/website/assets/hires/049.png"
+sudo cp /tmp/void-artwork/assets/hires/027.png /usr/share/backgrounds/void/void-wallpaper.png
+sudo cp /tmp/void-artwork/assets/hires/049.png /usr/share/backgrounds/void/void-wallpaper-2.png
+sudo cp /tmp/void-artwork/assets/hires/053.png /usr/share/backgrounds/void/void-wallpaper-3.png
+sudo cp /tmp/void-artwork/assets/hires/026.png /usr/share/backgrounds/void/void-wallpaper-4.png
+sudo cp /tmp/void-artwork/assets/hires/025.png /usr/share/backgrounds/void/void-wallpaper-5.png
+
+# Copy GRUB theme
+sudo mkdir -p /boot/grub/themes
+sudo rm -rf /boot/grub/themes/void3
+sudo cp -r /tmp/void-artwork/assets/grub/themes/void3 /boot/grub/themes/
+
+rm -rf /tmp/void-artwork
+
 VOID_WALL="/usr/share/backgrounds/void/void-wallpaper.png"
 if [ ! -s "$VOID_WALL" ]; then
   echo "   (wallpaper download failed — set manually)"
@@ -537,9 +549,52 @@ cat <<'BGXML' | sudo tee /usr/share/gnome-background-properties/void-wallpapers.
     <pcolor>#000000</pcolor>
     <scolor>#000000</scolor>
   </wallpaper>
+  <wallpaper deleted="false">
+    <name>Void Linux 3</name>
+    <filename>/usr/share/backgrounds/void/void-wallpaper-3.png</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#000000</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Void Linux 4</name>
+    <filename>/usr/share/backgrounds/void/void-wallpaper-4.png</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#000000</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Void Linux 5</name>
+    <filename>/usr/share/backgrounds/void/void-wallpaper-5.png</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#000000</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
 </wallpapers>
 BGXML
 echo "   Wallpapers registered in GNOME background properties."
+
+# --- GRUB Theme: configure ---
+# Theme files already copied from void-artwork clone above
+
+# Set the GRUB theme in /etc/default/grub
+if [ -f /etc/default/grub ]; then
+  if grep -q '^GRUB_THEME=' /etc/default/grub; then
+    sudo sed -i 's|^GRUB_THEME=.*|GRUB_THEME="/boot/grub/themes/void3/theme.txt"|' /etc/default/grub
+  elif grep -q '^#GRUB_THEME=' /etc/default/grub; then
+    sudo sed -i 's|^#GRUB_THEME=.*|GRUB_THEME="/boot/grub/themes/void3/theme.txt"|' /etc/default/grub
+  else
+    echo 'GRUB_THEME="/boot/grub/themes/void3/theme.txt"' | sudo tee -a /etc/default/grub > /dev/null
+  fi
+  # Regenerate GRUB config
+  if [ -d /boot/grub ]; then
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+  fi
+  echo "   Void GRUB theme installed and configured."
+fi
 
 # --- GNOME Extensions ---
 # Install gnome-shell-extension-installer CLI tool for unattended installs
@@ -551,56 +606,48 @@ sudo mv /tmp/gnome-shell-extension-installer /usr/local/bin/
 
 # Get current GNOME Shell version for extension compatibility
 GNOME_VER=$(gnome-shell --version 2>/dev/null | grep -oP '[0-9]+' | head -1 || echo "")
+echo "   GNOME Shell version: $GNOME_VER"
+echo "   Installing extensions..."
 
 # Track installed extension UUIDs for auto-enabling via dconf
 INSTALLED_UUIDS=()
 
-if [ -n "$GNOME_VER" ]; then
-  echo "   GNOME Shell version: $GNOME_VER"
-  echo "   Installing extensions from the gist..."
+# Extension IDs from extensions.gnome.org
+#
+# Trimmed from original gist for GNOME 48 compatibility.
+# Many original extensions are abandoned or now built into GNOME 43+ Quick
+# Settings (Bluetooth, audio device switching, power/suspend controls).
+# User Themes is provided by the gnome-shell-extensions system package.
+EXTENSIONS=(
+  4839  # Clipboard History
+  307   # Dash to Dock
+  904   # Disconnect Wifi
+  2     # Frippery Move Clock
+  755   # Hibernate Status Button
+  1218  # Printers
+  1634  # Resource Monitor
+)
 
-  # Extension IDs from extensions.gnome.org
-  #
-  # Trimmed from original gist for GNOME 48 compatibility.
-  # Many original extensions are abandoned or now built into GNOME 43+ Quick
-  # Settings (Bluetooth, audio device switching, power/suspend controls).
-  # User Themes is provided by the gnome-shell-extensions system package.
-  EXTENSIONS=(
-    4839  # Clipboard History
-    307   # Dash to Dock
-    904   # Disconnect Wifi
-    2     # Frippery Move Clock
-    755   # Hibernate Status Button
-    1218  # Printers
-    1634  # Resource Monitor
-  )
+for EXT_ID in "${EXTENSIONS[@]}"; do
+  gnome-shell-extension-installer "$EXT_ID" --yes 2>/dev/null || \
+    echo "   Warning: extension $EXT_ID failed to install"
+done
 
-  for EXT_ID in "${EXTENSIONS[@]}"; do
-    gnome-shell-extension-installer "$EXT_ID" --yes 2>/dev/null || \
-      echo "   Warning: extension $EXT_ID failed to install (may need GNOME running)"
-  done
-
-  # Collect UUIDs of all installed extensions to auto-enable them
-  # Check user-installed extensions
-  for EXT_DIR in "${HOME}"/.local/share/gnome-shell/extensions/*/; do
-    if [ -f "${EXT_DIR}metadata.json" ]; then
-      UUID=$(grep -oP '"uuid"\s*:\s*"\K[^"]+' "${EXT_DIR}metadata.json" 2>/dev/null || true)
-      if [ -n "$UUID" ]; then
-        INSTALLED_UUIDS+=("'${UUID}'")
-      fi
+# Collect UUIDs of all installed extensions to auto-enable them
+for EXT_DIR in "${HOME}"/.local/share/gnome-shell/extensions/*/; do
+  if [ -f "${EXT_DIR}metadata.json" ]; then
+    UUID=$(grep -oP '"uuid"\s*:\s*"\K[^"]+' "${EXT_DIR}metadata.json" 2>/dev/null || true)
+    if [ -n "$UUID" ]; then
+      INSTALLED_UUIDS+=("'${UUID}'")
     fi
-  done
+  fi
+done
 
-  # User Themes is provided by the gnome-shell-extensions system package
-  # (installed earlier) — add its UUID so it gets enabled too
-  INSTALLED_UUIDS+=("'user-theme@gnome-shell-extensions.gcampax.github.com'")
+# User Themes is provided by the gnome-shell-extensions system package
+# (installed earlier) — add its UUID so it gets enabled too
+INSTALLED_UUIDS+=("'user-theme@gnome-shell-extensions.gcampax.github.com'")
 
-  echo "   Extensions installed and will be auto-enabled on first login."
-else
-  echo "   GNOME Shell not running — extensions will need to be installed after first boot."
-  echo "   Use: gnome-shell-extension-installer <ID> --yes"
-  echo "   Or install via browser at https://extensions.gnome.org/"
-fi
+echo "   Extensions installed and will be auto-enabled on first login."
 
 # --- Apply GNOME settings via dconf ---
 # dbus-launch gsettings from a TTY is unreliable — write directly to dconf
