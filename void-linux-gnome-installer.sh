@@ -465,11 +465,20 @@ sudo fc-cache -f
 
 # --- Theme: Fluent GTK Theme ---
 # Ref: https://github.com/vinceliuice/Fluent-gtk-theme
+# NOTE: Do NOT use --libadwaita — it overwrites ~/.config/gtk-4.0/ which
+# breaks GNOME's native dark mode toggle and accent colors in Settings.
+# The Fluent theme applies to GTK3 legacy apps and GNOME Shell only.
+# GTK4/libadwaita apps use GNOME's built-in dark mode via color-scheme.
 echo "   Installing Fluent GTK Theme..."
 rm -rf /tmp/Fluent-gtk-theme
 git clone --depth 1 https://github.com/vinceliuice/Fluent-gtk-theme /tmp/Fluent-gtk-theme
-/tmp/Fluent-gtk-theme/install.sh --icon void --libadwaita
+/tmp/Fluent-gtk-theme/install.sh --icon void
 rm -rf /tmp/Fluent-gtk-theme
+
+# Clean up any leftover libadwaita overrides from previous runs
+rm -f "${HOME}/.config/gtk-4.0/gtk.css"
+rm -f "${HOME}/.config/gtk-4.0/gtk-dark.css"
+rm -rf "${HOME}/.config/gtk-4.0/assets"
 
 # --- Icons: Fluent Icon Theme (Grey) ---
 # Ref: https://github.com/vinceliuice/Fluent-icon-theme
