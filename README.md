@@ -50,6 +50,23 @@ Review the script before running — comment out any sections you don't need.
 └── README.md                       # This file
 ```
 
+## Framework Laptop Support
+
+This script auto-detects Framework hardware via DMI and applies targeted fixes:
+
+- **Firmware updates** — Installs `fwupd` for BIOS, fingerprint reader, and expansion card firmware via LVFS
+- **Wi-Fi stability** — Installs `wireless-regdb` and `iw` to fix frequent disconnects
+- **Audio pop/crackle** — Disables HDA Intel power saving (`snd_hda_intel power_save=0`)
+- **Framework 16 speakers** — Blacklists `snd_hda_codec_realtek` so speakers work via the generic codec
+- **AMD display flickering** — Adds `amdgpu dcdebugmask=0x10` to disable PSR
+- **AMD power management** — Replaces TLP with `power-profiles-daemon` (recommended by AMD/Framework for 7040 series)
+- **Intel 12th Gen brightness keys** — Blacklists `hid_sensor_hub` to fix brightness and airplane mode key conflicts
+- **Ethernet expansion card** — Adds TLP exception so the USB ethernet card isn't power-limited
+
+## Mainline Kernel
+
+The script installs `linux-mainline` and `linux-mainline-headers` instead of the default kernel to ensure support for recent hardware, including newer Framework Laptop models, AMD 7040 series, and Intel 12th/13th gen processors. The mainline kernel is also required for NVIDIA DKMS module builds.
+
 ## Sources
 
 This script is based on and extends the following guides, updated to follow the official Void Linux Handbook:
