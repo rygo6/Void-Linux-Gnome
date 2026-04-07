@@ -135,6 +135,8 @@ height-fraction=0.90000000000000002
 preferred-monitor=-2
 preferred-monitor-by-connector='eDP-1'
 transparency-mode='FIXED'
+click-action='previews'
+show-windows-preview=true
 
 [org/gnome/shell/extensions/user-theme]
 name='Fluent-dark'
@@ -202,7 +204,7 @@ sudo xbps-install -y curl wget git xz unzip zip nano vim gptfdisk gparted \
   mtools mlocate ntfs-3g fuse-exfat bash-completion \
   linux-mainline linux-mainline-headers \
   ffmpeg htop zsh efibootmgr pciutils openssh \
-  sassc
+  sassc ghostty
 
 # GVFS backends for GNOME (network shares, MTP, photos, etc.)
 sudo xbps-install -y gvfs-smb samba gvfs-goa gvfs-gphoto2 gvfs-mtp \
@@ -757,6 +759,22 @@ picture-uri='file://${VOID_WALL}'
 DCONF
 
 echo "   GNOME dconf settings applied (fonts, theme, icons, cursor, wallpaper)."
+
+###############################################################################
+# Terminal: Ghostty configuration
+###############################################################################
+echo ">>> Configuring Ghostty terminal..."
+mkdir -p "${HOME}/.config/ghostty"
+cat <<'EOF' > "${HOME}/.config/ghostty/config"
+# Copy/Paste - Ctrl+C copies when there's a selection, otherwise sends interrupt.
+# Ctrl+V pastes from clipboard.
+keybind = performable:ctrl+c=copy_to_clipboard
+keybind = performable:ctrl+v=paste_from_clipboard
+
+# Make copy not clear the selection
+copy-on-select = false
+EOF
+echo "   Ghostty config written to ~/.config/ghostty/config"
 
 ###############################################################################
 # Flatpak + Flathub

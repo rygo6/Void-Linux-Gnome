@@ -12,6 +12,7 @@ A single-script installer that sets up a complete GNOME desktop environment on a
 - **GPU drivers** — Auto-detects AMD, Intel, and NVIDIA hardware via `lspci` and installs the correct drivers, Vulkan support, and video acceleration
 - **Fingerprint reader** — Auto-detects via `lsusb` and configures fprintd with PAM for GDM, sudo, polkit, and console login
 - **Framework Laptop fixes** — Auto-detects Framework hardware and applies known fixes (audio pop, Wi-Fi stability, display flickering, brightness keys, TLP/PPD selection)
+- **Terminal** — Ghostty with smart Ctrl+C/V copy-paste (copies on selection, otherwise sends interrupt)
 - **Theming** — Fluent GTK theme, Fluent icon theme (grey), Borealis cursors, Inter + JetBrains Mono + ShureTechMono Nerd fonts
 - **GNOME extensions** — Clipboard History, Dash to Dock, Disconnect Wifi, Frippery Move Clock, Hibernate Status Button, Printers, Resource Monitor
 - **Wallpapers + GRUB theme** — Void Linux artwork (bundled in `artwork/`)
