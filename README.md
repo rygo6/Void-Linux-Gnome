@@ -1,28 +1,27 @@
-# Void Linux GNOME
+# Void Linux Cinnamon
 
-A single-script installer that sets up a complete GNOME desktop environment on a fresh Void Linux base install. Run it once after a minimal Void Linux installation and reboot into a fully configured desktop.
+A single-script installer that sets up a complete Cinnamon desktop environment on a fresh Void Linux base install with a custom "Void Nord" theme. Run it once after a minimal Void Linux installation and reboot into a fully configured desktop.
 
 ## What It Does
 
-- **Desktop environment** — Installs GNOME with GDM, Xorg, XDG portals, and GNOME browser connector
+- **Desktop environment** — Cinnamon with LightDM + Slick Greeter
+- **Theming** — Custom Void-Y-Dark theme and Void-Y icons, recolored from Linux Mint's Mint-Y into a muted sage green "Void Nord" palette
+- **Terminal** — Ghostty with Void Nord color scheme and slight transparency
+- **Wallpaper** — Void Linux artwork from [oSoWoSo/void-artwork](https://github.com/oSoWoSo/void-artwork) (CC-BY-4.0)
 - **Networking** — NetworkManager with VPN plugins (OpenVPN, OpenConnect, VPNC, L2TP)
-- **Audio** — PipeWire + WirePlumber (replaces PulseAudio), with ALSA compatibility
-- **Bluetooth** — BlueZ with PipeWire audio support (libspa-bluetooth)
+- **Audio** — PipeWire + WirePlumber with ALSA compatibility
+- **Bluetooth** — BlueZ with PipeWire audio support
 - **Printing** — CUPS with filters, Foomatic, and Gutenprint drivers
-- **GPU drivers** — Auto-detects AMD, Intel, and NVIDIA hardware via `lspci` and installs the correct drivers, Vulkan support, and video acceleration
-- **Fingerprint reader** — Auto-detects via `lsusb` and configures fprintd with PAM for GDM, sudo, polkit, and console login
-- **Framework Laptop fixes** — Auto-detects Framework hardware and applies known fixes (audio pop, Wi-Fi stability, display flickering, brightness keys, TLP/PPD selection)
-- **Terminal** — Ghostty with smart Ctrl+C/V copy-paste (copies on selection, otherwise sends interrupt)
-- **Theming** — Fluent GTK theme, Fluent icon theme (grey), Borealis cursors, Inter + JetBrains Mono + ShureTechMono Nerd fonts
-- **GNOME extensions** — Clipboard History, Dash to Dock, Disconnect Wifi, Frippery Move Clock, Hibernate Status Button, Printers, Resource Monitor
-- **Wallpapers + GRUB theme** — Void Linux artwork (bundled in `artwork/`)
-- **Hibernate on lid close** — Configures GRUB resume, dracut, elogind, and polkit for swap-based hibernation
-- **Flatpak** — Flathub repository with GNOME Software integration
-- **Services** — Enables GDM, D-Bus, elogind, NetworkManager, Bluetooth, CUPS, cronie, chronyd, TLP, and SSH; disables conflicting acpid/dhcpcd/wpa_supplicant
+- **GPU drivers** — Auto-detects AMD, Intel, and NVIDIA hardware and installs correct drivers
+- **Fonts** — JetBrains Mono, Noto Sans/Serif/Mono, Liberation, Cantarell
+- **Panel layout** — Top info bar + bottom dock-style panel with auto-hide, grouped window list with app pinning
+- **Power** — TLP, powertop, hibernate on lid close via elogind
+- **Flatpak** — Flathub repository with select apps
+- **Services** — Enables LightDM, D-Bus, elogind, NetworkManager, Bluetooth, CUPS, cronie, chronyd, TLP; disables conflicting dhcpcd/wpa_supplicant
 
 ## Prerequisites
 
-- Fresh Void Linux install from the **base** live image (not Xfce)
+- Fresh Void Linux install from the **base** live image
 - Installed via `void-installer` with "Network" source
 - A non-root user in the `wheel` group with sudo access
 - System boots to TTY with networking functional
@@ -32,50 +31,81 @@ A single-script installer that sets up a complete GNOME desktop environment on a
 ```bash
 git clone https://github.com/rygo6/Void-Linux-Gnome.git
 cd Void-Linux-Gnome
-chmod +x void-linux-gnome-installer.sh
-./void-linux-gnome-installer.sh
+chmod +x void-linux-cinnamon-install.sh
+./void-linux-cinnamon-install.sh
 ```
 
-Review the script before running — comment out any sections you don't need.
+Review the script before running -- comment out any sections you don't need.
 
 ## Repository Structure
 
 ```
 .
-├── void-linux-gnome-installer.sh   # Main installer script
-├── artwork/                        # Void Linux wallpapers + GRUB theme (CC-BY-4.0)
-│   ├── wallpapers/                 # 5 high-res Void Linux wallpapers
-│   ├── grub/themes/void3/          # Void GRUB bootloader theme
-│   ├── LICENSE                     # CC-BY-4.0 license
-│   └── README.md                   # Artwork attribution and source info
-└── README.md                       # This file
+├── download-process-artwork.sh     # Downloads and recolors upstream Mint-Y assets
+├── void-nord-recolor.sh            # Recolor any PNG/SVG to Void Nord palette
+├── void-linux-cinnamon-install.sh  # Main installer (uses pre-built assets)
+├── void-linux-gnome-uninstall.sh   # Uninstall helper
+├── artwork/                        # Hand-curated files (CC-BY-4.0)
+│   ├── void-menu.svg               # Void logo for Cinnamon menu
+│   ├── void-night-background.png   # Wallpaper (3840x2160)
+│   └── LICENSE
+├── icons/                          # GENERATED by download-process-artwork.sh
+│   └── Void-Y/                     # Recolored Mint-Y icons
+├── themes/                         # GENERATED by download-process-artwork.sh
+│   └── Void-Y-Dark/                # Recolored Mint-Y-Dark theme
+└── README.md
 ```
 
-## Framework Laptop Support
+## Art Assets: Icons & Themes
 
-This script auto-detects Framework hardware via DMI and applies targeted fixes:
+The `download-process-artwork.sh` script downloads upstream Linux Mint assets and recolors them into a "Void Nord" palette -- a muted, desaturated color scheme inspired by Nord but shifted from polar blue to forest sage green.
 
-- **Firmware updates** — Installs `fwupd` for BIOS, fingerprint reader, and expansion card firmware via LVFS
-- **Wi-Fi stability** — Installs `wireless-regdb` and `iw` to fix frequent disconnects
-- **Audio pop/crackle** — Disables HDA Intel power saving (`snd_hda_intel power_save=0`)
-- **Framework 16 speakers** — Blacklists `snd_hda_codec_realtek` so speakers work via the generic codec
-- **AMD display flickering** — Adds `amdgpu dcdebugmask=0x10` to disable PSR
-- **AMD power management** — Replaces TLP with `power-profiles-daemon` (recommended by AMD/Framework for 7040 series)
-- **Intel 12th Gen brightness keys** — Blacklists `hid_sensor_hub` to fix brightness and airplane mode key conflicts
-- **Ethernet expansion card** — Adds TLP exception so the USB ethernet card isn't power-limited
+**What it downloads:**
+- [linuxmint/mint-themes](https://github.com/linuxmint/mint-themes) (GPL-3+) -- GTK 2/3/4, Cinnamon, and Metacity themes
+- [linuxmint/mint-y-icons](https://github.com/linuxmint/mint-y-icons) (GPL-3+, icons CC-BY-SA-4) -- full icon set
 
-## Mainline Kernel
+**How it alters them:**
+- **Theme CSS/SVG** -- 40+ sed replacements shift Mint-Y greens to sage (`#6a8a6e`), reds to Nordic red (`#bf616a`), oranges to Nordic orange (`#d08770`)
+- **GTK toggle PNGs** -- Re-renders switch/checkbox/radio assets from recolored SVG sources via Inkscape (GTK uses pre-rendered PNGs, not CSS, for these)
+- **Icon PNGs** -- Per-pixel Pillow hue shift across all saturated colors: greens to sage, reds to muted red, blues to teal-sage, yellows to muted gold, purples to muted mauve
+- **Cinnamon panel CSS** -- Appends dock-style bottom panel overrides
 
-The script installs `linux-mainline` and `linux-mainline-headers` instead of the default kernel to ensure support for recent hardware, including newer Framework Laptop models, AMD 7040 series, and Intel 12th/13th gen processors. The mainline kernel is also required for NVIDIA DKMS module builds.
+The results are saved to `icons/Void-Y/` and `themes/Void-Y-Dark/` and committed to the repo. The install script copies these pre-built assets -- it never runs the download/recolor process.
+
+**Rebuilding assets requires:** `inkscape`, `python3-Pillow`
+
+### Recoloring individual files
+
+Use `void-nord-recolor.sh` to apply the Void Nord palette to any PNG or SVG:
+
+```bash
+./void-nord-recolor.sh image.png icon.svg
+```
+
+PNGs are recolored via per-pixel hue shifting (requires `python3-Pillow`). SVGs are recolored via sed hex replacements.
+
+### Sage Green Accent Palette
+
+- Main: `#6a8a6e` / Light: `#8aaa8e` / Dark: `#5a7a5e`
+
+### Void Nord Ghostty Theme
+
+| Color | Normal | Bright |
+|---|---|---|
+| Background | `#27272b` | |
+| Foreground | `#d4ddd6` | |
+| Black | `#2b332d` | `#4c594e` |
+| Red | `#bf616a` | `#d08770` |
+| Green | `#6a8a6e` | `#8aaa8e` |
+| Yellow | `#dbc07a` | `#ebcb8b` |
+| Blue | `#5a7a6e` | `#7a9a8e` |
+| Magenta | `#9a7a8e` | `#b48ead` |
+| Cyan | `#7a9e86` | `#8abaa0` |
+| White | `#cdd7cf` | `#e8f0ea` |
 
 ## Sources
 
-This script is based on and extends the following guides, updated to follow the official Void Linux Handbook:
-
-- [Reddit: Void + GNOME guide](https://reddit.com/r/voidlinux/comments/1ar05zg/guide_void_gnome/)
-- [Gist: nerdyslacker Void + GNOME](https://gist.github.com/nerdyslacker/398671398915888f977b8bddb33ab1f1)
 - [The Void Linux Handbook](https://docs.voidlinux.org/)
-
-Key changes from the source guides are documented in the script header (PipeWire over PulseAudio, Bluetooth config, NetworkManager groups, acpid/elogind conflict, GDM testing, GPU auto-detection, fingerprint auto-detection).
-
-Artwork sourced from [oSoWoSo/void-artwork](https://github.com/oSoWoSo/void-artwork) under [CC-BY-4.0](artwork/LICENSE).
+- Theme: [linuxmint/mint-themes](https://github.com/linuxmint/mint-themes) (GPL-3+)
+- Icons: [linuxmint/mint-y-icons](https://github.com/linuxmint/mint-y-icons) (GPL-3+, CC-BY-SA-4)
+- Artwork: [oSoWoSo/void-artwork](https://github.com/oSoWoSo/void-artwork) (CC-BY-4.0)
