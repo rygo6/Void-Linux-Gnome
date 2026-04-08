@@ -671,8 +671,8 @@ cat <<'EOF' > "${HOME}/.config/ghostty/config"
 # Aurora (harmonized warm colors)
 #   red #bf616a  orange #c88a6a  yellow #dbc07a  green #8aaa8e  purple #9a7a8e
 
-background = #19191b
-background-opacity = 0.92
+background = #18181b
+background-opacity = 0.90
 foreground = #d4ddd6
 cursor-color = #6a8a6e
 selection-background = #404c42
@@ -703,6 +703,9 @@ palette = 14=#8abaa0
 # White
 palette = 7=#cdd7cf
 palette = 15=#e8f0ea
+
+# Window
+window-theme = system
 
 # Keybindings
 keybind = performable:ctrl+c=copy_to_clipboard

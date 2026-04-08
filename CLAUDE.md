@@ -70,7 +70,7 @@ Void-Linux-Gnome/
 
 Nord-inspired palette with green base instead of blue. Background uses a subtle blue tint to match Cinnamon shell.
 
-- **Background**: `#27272b` (neutral dark with slight blue, 0.92 opacity)
+- **Background**: `#18181b` (dark with slight blue tint, 0.90 opacity)
 - **Foreground**: `#d4ddd6`
 - **Cursor**: `#6a8a6e` (sage green)
 - **Selection**: bg `#404c42` / fg `#e8f0ea`
