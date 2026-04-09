@@ -240,6 +240,7 @@ fi
 ###############################################################################
 echo ">>> Installing Void-Y Icons..."
 mkdir -p "${HOME}/.local/share/icons"
+rm -rf "${HOME}/.local/share/icons/Void-Y"
 cp -r "$SCRIPT_DIR/icons/Void-Y" "${HOME}/.local/share/icons/"
 
 ###############################################################################
@@ -247,6 +248,7 @@ cp -r "$SCRIPT_DIR/icons/Void-Y" "${HOME}/.local/share/icons/"
 # See download-process-artwork.sh for how it was built.
 ###############################################################################
 echo ">>> Installing Void-Y-Dark theme..."
+mkdir -p "${HOME}/.local/share/themes"
 rm -rf "${HOME}/.local/share/themes/Void-Y-Dark"
 cp -r "$SCRIPT_DIR/themes/Void-Y-Dark" "${HOME}/.local/share/themes/"
 
@@ -856,6 +858,15 @@ echo "   Cinnamon dconf settings applied."
 echo ">>> Installing and configuring Flatpak..."
 sudo xbps-install -S -y flatpak gnome-software
 sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+# XDG Desktop Portal config for Cinnamon — tells portals to use the GTK backend
+# Without this, Flatpak apps can't open file dialogs, URLs, or use screencasting
+sudo mkdir -p /usr/share/xdg-desktop-portal
+cat <<'EOF' | sudo tee /usr/share/xdg-desktop-portal/x-cinnamon-portals.conf > /dev/null
+[preferred]
+default=xapp;gtk;
+org.freedesktop.impl.portal.Secret=gnome-keyring;
+EOF
 sudo flatpak override --env=GTK_THEME=Void-Y-Dark
 sudo flatpak override --filesystem=~/.local/share/themes:ro
 sudo flatpak override --filesystem=~/.local/share/icons:ro
@@ -1041,10 +1052,10 @@ fi
 # Enable services
 ###############################################################################
 echo ">>> Enabling services..."
-sudo ln -sf /etc/sv/lightdm /var/service/
 
 # Configure LightDM to use slick greeter
 sudo sed -i 's/^#\?greeter-session=.*/greeter-session=slick-greeter/' /etc/lightdm/lightdm.conf
+
 sudo ln -sf /etc/sv/dbus /var/service/
 sudo ln -sf /etc/sv/elogind /var/service/
 sudo ln -sf /etc/sv/NetworkManager /var/service/
@@ -1054,6 +1065,10 @@ sudo ln -sf /etc/sv/cronie /var/service/
 sudo ln -sf /etc/sv/chronyd /var/service/
 sudo ln -sf /etc/sv/tlp /var/service/
 sudo ln -sf /etc/sv/sshd /var/service/
+
+# Enable lightdm last — symlink to /var/service starts it immediately
+# via runit, so everything else must be ready first
+sudo ln -sf /etc/sv/lightdm /var/service/
 echo "   Services enabled."
 
 ###############################################################################
