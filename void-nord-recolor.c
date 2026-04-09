@@ -29,24 +29,24 @@ typedef struct {
 } HexReplace;
 
 static const HexReplace hex_replacements[] = {
-    /* Greens */
-    {"#35a854", "#6a8a6e"}, {"#88c663", "#8aaa8e"}, {"#6db442", "#6a8a6e"},
-    {"#568f34", "#5a7a5e"}, {"#98deab", "#8aaa8e"}, {"#92b372", "#6a8a6e"},
-    {"#9ad4aa", "#8aaa8e"}, {"#a4d8b2", "#92b296"}, {"#73d216", "#6a8a6e"},
-    {"#30974c", "#4a6a4e"}, {"#30984c", "#4a6a4e"}, {"#298141", "#3d5d41"},
-    {"#3bbb5e", "#5a7a5e"}, {"#2f954a", "#4a6a4e"}, {"#5acb78", "#6a8a6e"},
-    {"#236e37", "#3a5a3e"}, {"#71d28b", "#7a9a7e"}, {"#3ab85c", "#5a7a5e"},
-    {"#4ac66b", "#6a8a6e"},
+    /* Greens — targets are the four Void brand greens + derived intermediates */
+    {"#35a854", "#478061"}, {"#88c663", "#abc2ab"}, {"#6db442", "#478061"},
+    {"#568f34", "#406551"}, {"#98deab", "#abc2ab"}, {"#92b372", "#478061"},
+    {"#9ad4aa", "#abc2ab"}, {"#a4d8b2", "#abc2ab"}, {"#73d216", "#478061"},
+    {"#30974c", "#355c49"}, {"#30984c", "#355c49"}, {"#298141", "#295340"},
+    {"#3bbb5e", "#406551"}, {"#2f954a", "#355c49"}, {"#5acb78", "#478061"},
+    {"#236e37", "#295340"}, {"#71d28b", "#79a186"}, {"#3ab85c", "#406551"},
+    {"#4ac66b", "#478061"},
     /* Light greens (CSS hover/focus tints) */
-    {"#e1f2e5", "#d0ddd2"}, {"#d7eedd", "#c8d8ca"}, {"#ebf6ee", "#dde8df"},
-    {"#c2e5cc", "#b0c8b2"}, {"#aedcbb", "#a0baa2"}, {"#86cb98", "#7a9a7e"},
+    {"#e1f2e5", "#d5e1d5"}, {"#d7eedd", "#c8d8c8"}, {"#ebf6ee", "#dde8dd"},
+    {"#c2e5cc", "#b0c8b0"}, {"#aedcbb", "#a0baa0"}, {"#86cb98", "#79a186"},
     /* Reds / oranges */
     {"#ef2929", "#bf616a"}, {"#f57900", "#d08770"}, {"#f70505", "#bf616a"},
     {"#f75a61", "#cf717a"}, {"#d8354a", "#af515a"}, {"#ff7a80", "#df818a"},
-    /* Arc-dark background blues (SVG widget backgrounds) */
-    {"#383c4a", "#2b332d"}, {"#353945", "#2b332d"}, {"#2b2f3b", "#262c28"},
-    {"#252a35", "#242a26"}, {"#3c4049", "#323a34"}, {"#161a26", "#1e241f"},
-    {"#0f1116", "#141a15"}, {"#1b1c21", "#1e241f"},
+    /* Arc-dark background blues (SVG widget backgrounds) → neutral libadwaita darks */
+    {"#383c4a", "#2e2e32"}, {"#353945", "#2e2e32"}, {"#2b2f3b", "#28282c"},
+    {"#252a35", "#222226"}, {"#3c4049", "#36363a"}, {"#161a26", "#1d1d20"},
+    {"#0f1116", "#1d1d20"}, {"#1b1c21", "#1d1d20"},
     /* Mint-Y blueish darks → libadwaita defaults */
     {"#303036", "#2e2e32"}, {"#3c3c44", "#36363a"}, {"#44444c", "#36363a"},
     {"#38383e", "#36363a"}, {"#494951", "#505053"}, {"#29292e", "#28282c"},
@@ -64,6 +64,13 @@ static const HexReplace hex_replacements[] = {
     /* Mint-Y specific darks → closest libadwaita match */
     {"#2e2e33", "#2e2e32"}, /* Mint-Y window bg → libadwaita headerbar */
     {"#2a2a2e", "#28282c"}, /* Mint-Y sidebar → libadwaita sidebar_backdrop */
+    /* Neutral grays → libadwaita +4 blue tint equivalents */
+    {"#1c1c1c", "#1c1c20"}, {"#212121", "#212125"},
+    {"#2b2b2b", "#2b2b2f"}, {"#303030", "#303034"},
+    {"#353535", "#353539"}, {"#373737", "#37373b"},
+    {"#393939", "#39393d"}, {"#3f3f3f", "#3f3f43"},
+    {"#414141", "#414145"}, {"#474747", "#47474b"},
+    {"#4a4a4a", "#4a4a4e"}, {"#5c5c5c", "#5c5c60"},
     {NULL, NULL}
 };
 
@@ -73,13 +80,13 @@ typedef struct {
 } RgbaReplace;
 
 static const RgbaReplace rgba_replacements[] = {
-    {"rgba(53, 168, 84",   "rgba(106, 138, 110"},
-    {"rgba(109, 180, 66",  "rgba(106, 138, 110"},
-    {"rgba(136, 198, 99",  "rgba(138, 170, 142"},
-    {"rgba(141, 206, 158", "rgba(138, 170, 142"},
-    {"rgba(41, 129, 65",   "rgba(74, 106, 78"},
-    {"rgba(50, 160, 80",   "rgba(90, 122, 94"},
-    {"rgba(0, 255, 0",     "rgba(106, 138, 110"},
+    {"rgba(53, 168, 84",   "rgba(71, 128, 97"},     /* #35a854 → #478061 */
+    {"rgba(109, 180, 66",  "rgba(71, 128, 97"},     /* #6db442 → #478061 */
+    {"rgba(136, 198, 99",  "rgba(171, 194, 171"},   /* #88c663 → #abc2ab */
+    {"rgba(141, 206, 158", "rgba(171, 194, 171"},   /* lighter green → #abc2ab */
+    {"rgba(41, 129, 65",   "rgba(41, 83, 64"},      /* darker green → #295340 */
+    {"rgba(50, 160, 80",   "rgba(64, 101, 81"},     /* medium green → #406551 */
+    {"rgba(0, 255, 0",     "rgba(71, 128, 97"},     /* pure green → #478061 */
     {"rgba(252, 65, 56",   "rgba(191, 97, 106"},
     {"rgba(245, 121, 0",   "rgba(208, 135, 112"},
     /* Mint-Y blueish rgba darks → libadwaita defaults */
@@ -114,7 +121,7 @@ static const HueMap hue_map[] = {
     {330, 360, 355.f/360, 0.45f, 0.80f},
     { 30,  50,  22.f/360, 0.50f, 0.82f},
     { 50,  80,  43.f/360, 0.50f, 0.85f},
-    { 80, 180, 128.f/360, 0.32f, 0.70f},
+    { 80, 180, 150.f/360, 0.40f, 0.65f},
     {180, 260, 160.f/360, 0.35f, 0.72f},
     {260, 330, 310.f/360, 0.35f, 0.75f},
 };
@@ -342,7 +349,21 @@ static int recolor_png(const char *path)
             float hue, sat, val;
             rgb_to_hsv(r / 255.f, g / 255.f, b / 255.f, &hue, &sat, &val);
 
-            if (sat < 0.15f) continue;
+            if (sat < 0.15f) {
+                /* Normalize blue-tinted dark backgrounds to libadwaita's
+                   consistent +4 blue offset (R=G, B=R+4). */
+                if (b > r && b > g && (b - (r < g ? r : g)) > 1) {
+                    unsigned char avg = (r + g) / 2;
+                    unsigned char nb  = avg + 4 < 255 ? avg + 4 : 255;
+                    if (px[0] != avg || px[1] != avg || px[2] != nb) {
+                        px[0] = avg;
+                        px[1] = avg;
+                        px[2] = nb;
+                        modified = 1;
+                    }
+                }
+                continue;
+            }
 
             float hue_deg = hue * 360.f;
             for (size_t i = 0; i < HUE_MAP_LEN; i++) {

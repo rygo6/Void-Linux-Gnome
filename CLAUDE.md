@@ -9,7 +9,7 @@ Void-Linux-Gnome/
     void-menu.svg                 # Void logo for Cinnamon menu
     void-night-background.png     # Wallpaper (3840x2160)
   icons/                          # GENERATED — do not hand-edit
-    Void-Y/                       # Recolored Mint-Y icons (sage green)
+    Void-Y/                       # Recolored Mint-Y icons (Void green)
       LICENSE-mint-y-icons        # GPL-3+ / CC-BY-SA-4
   themes/                         # GENERATED — do not hand-edit
     Void-Y-Dark/                  # Recolored Mint-Y-Dark theme + dock CSS
@@ -55,24 +55,28 @@ Void-Linux-Gnome/
    - Installs and configures Ghostty terminal
    - Applies full dconf settings dump: Cinnamon theme, keybindings, touchpad gestures, power settings, window tiling, extensions, Nemo file manager, terminal profile, GNOME fallback settings
    - Installs Flatpak + Flathub + select Flatpak apps
-   - Installs Profile Sync Daemon (browser profile → tmpfs)
-   - Configures hibernate-on-lid-close via elogind
+   - Configures hibernate-on-lid-close (GRUB resume, dracut, polkit)
    - Enables runit services: dbus, NetworkManager, lightdm, bluetoothd, cupsd, crond, chronyd, tlp, etc.
    - Disables conflicting services (dhcpcd, wpa_supplicant)
 
 **These two scripts must stay separate.** The install script never runs or invokes the download script.
 
-## Sage Green Accent Palette
+## Void Green Accent Palette
 
-- Main: `#6a8a6e` / Light: `#8aaa8e` / Dark: `#5a7a5e`
+The four official Void Linux brand greens, used as all accent colors throughout:
+
+- Darkest: `#295340` / Dark: `#406551` / Main: `#478061` / Light: `#abc2ab`
+
+Derived intermediates for CSS shading:
+- `#355c49` (midpoint darkest↔dark) / `#79a186` (midpoint main↔light)
 
 ## Void Nord — Ghostty Color Scheme
 
-Nord-inspired palette with green base instead of blue. Background uses a subtle blue tint to match Cinnamon shell.
+Nord-inspired palette with Void green base instead of blue. Dark backgrounds use libadwaita's subtle +4 blue channel offset (R=G, B=R+4).
 
-- **Background**: `#18181b` (dark with slight blue tint, 0.90 opacity)
+- **Background**: `#18181b` (dark with blue tint, 0.90 opacity)
 - **Foreground**: `#d4ddd6`
-- **Cursor**: `#6a8a6e` (sage green)
+- **Cursor**: `#478061` (Void green)
 - **Selection**: bg `#404c42` / fg `#e8f0ea`
 
 ### ANSI Palette
@@ -81,9 +85,9 @@ Nord-inspired palette with green base instead of blue. Background uses a subtle 
 |---|---|---|
 | Black | `#2b332d` | `#4c594e` |
 | Red | `#bf616a` | `#d08770` |
-| Green | `#6a8a6e` | `#8aaa8e` |
+| Green | `#478061` | `#abc2ab` |
 | Yellow | `#dbc07a` | `#ebcb8b` |
-| Blue (teal-sage) | `#5a7a6e` | `#7a9a8e` |
+| Blue (teal) | `#5a7a6e` | `#7a9a8e` |
 | Magenta | `#9a7a8e` | `#b48ead` |
 | Cyan | `#7a9e86` | `#8abaa0` |
 | White | `#cdd7cf` | `#e8f0ea` |
@@ -100,7 +104,7 @@ Single-file C application that handles all color recoloring for the project. Com
 
 **How text recoloring works**: Two static tables in the C source — `hex_replacements[]` and `rgba_replacements[]`. Each entry is a from→to string pair. The tool reads the file into memory, scans for each pattern, and replaces in-place. Hex replacements are case-insensitive; rgba replacements are exact match.
 
-**How PNG recoloring works**: Reads each pixel, converts RGB→HSV, checks if saturation > 15%, then maps the hue into one of 7 ranges defined in `hue_map[]`. Each range has a target hue, saturation multiplier, and value multiplier. This mutes and shifts all saturated colors to the Nord-inspired palette.
+**How PNG recoloring works**: Reads each pixel, converts RGB→HSV, checks if saturation > 15%, then maps the hue into one of 7 ranges defined in `hue_map[]`. Each range has a target hue, saturation multiplier, and value multiplier. This mutes and shifts all saturated colors to the Void Nord palette.
 
 **PNG hue map ranges** (in `hue_map[]`):
 | Hue Range (deg) | Target Hue | Sat× | Val× | Color |
@@ -108,13 +112,13 @@ Single-file C application that handles all color recoloring for the project. Com
 | 0-30, 330-360 | 355° | 0.45 | 0.80 | Reds → muted red |
 | 30-50 | 22° | 0.50 | 0.82 | Oranges → muted orange |
 | 50-80 | 43° | 0.50 | 0.85 | Yellows → muted yellow |
-| 80-180 | 128° | 0.32 | 0.70 | Greens → sage green |
-| 180-260 | 160° | 0.35 | 0.72 | Blues → teal-sage |
+| 80-180 | 150° | 0.40 | 0.65 | Greens → Void green |
+| 180-260 | 160° | 0.35 | 0.72 | Blues → teal |
 | 260-330 | 310° | 0.35 | 0.75 | Purples → muted magenta |
 
 **Adding new hex/rgba colors**: Add entries to `hex_replacements[]` or `rgba_replacements[]` in the C source before the `{NULL, NULL}` sentinel. Hex entries must be lowercase in the `from` field (matching is case-insensitive). Recompile after changes.
 
-**Adding new blueish-tinted backgrounds**: Mint-Y uses slightly blue-tinted dark backgrounds (e.g. `#2e2e33` where B > R=G). To neutralize, add an entry mapping to the same value with B brought down to match R/G (e.g. `{"#2e2e33", "#2a2a2a"}`). To find remaining blueish colors after a build, run:
+**Adding new blueish-tinted backgrounds**: Mint-Y uses slightly blue-tinted dark backgrounds (e.g. `#2e2e33` where B > R=G). These are normalized to libadwaita's +4 blue offset convention (R=G, B=R+4). To add a new one, map it to the closest libadwaita dark value. To find remaining blueish colors after a build, run:
 ```bash
 find themes/ -name '*.css' -o -name '*.rc' -o -name 'gtkrc' | \
   xargs grep -ohiP '#[0-9a-f]{6}' | sort -fu | \
@@ -130,10 +134,11 @@ find themes/ -name '*.css' -o -name '*.rc' -o -name 'gtkrc' | \
 ## Technical Notes
 
 - **GTK asset rendering**: GTK toggle switches, checkboxes, radios, etc. are pre-rendered PNGs from `assets.svg`. The C tool recolors the SVG source, then Inkscape re-renders every asset entry. This is why inkscape is still required.
-- **Icon recolor params**: hue→128°, sat×0.32, val×0.70 on pixels with hue 80-180° and sat>15%.
+- **Icon recolor params**: hue→150°, sat×0.40, val×0.65 on pixels with hue 80-180° and sat>15%.
 - **No Mint-Y-Grey**: We recolor Mint-Y folder icons directly instead of using the Grey variant.
 - **Wallpaper**: Was `void-spice-background.png`, renamed to `void-night-background.png`.
 - **Grayscale PNGs**: The C tool adds `PNG_TRANSFORM_GRAY_TO_RGB` to avoid buffer overruns on 1-2 channel images.
+- **libadwaita dark backgrounds**: All dark backgrounds maintain libadwaita's +4 blue channel offset convention. Neutral grays get the tint added; Mint-Y blueish darks get normalized to match. This applies to both text (hex/rgba tables) and PNG (low-saturation pixel handler) recoloring.
 
 ## Upstream Sources
 

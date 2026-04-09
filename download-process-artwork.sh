@@ -4,7 +4,7 @@
 # =============================================================================
 #
 # Downloads Mint-Y-Dark theme and Mint-Y icons from upstream repos,
-# recolors greens to sage green (#6a8a6e) to match the Void wallpaper,
+# recolors greens to Void green (#478061) to match the Void wallpaper,
 # re-renders PNG assets from modified SVGs, recolors green icon PNGs,
 # appends dock CSS overrides, renames to Void-Y / Void-Y-Dark, and
 # places everything in icons/ and themes/ ready to be committed.
@@ -131,9 +131,9 @@ sed -i 's/Name=Mint-Y/Name=Void-Y/' "$SCRIPT_DIR/icons/Void-Y/index.theme"
 rm -rf /tmp/mint-themes /tmp/mint-y-icons
 
 ###############################################################################
-# Recolor theme: replace all Mint-Y greens with sage green in CSS/SVG
+# Recolor theme: replace all Mint-Y greens with Void green in CSS/SVG
 ###############################################################################
-echo ">>> Recoloring theme CSS/SVG/RC to sage green..."
+echo ">>> Recoloring theme CSS/SVG/RC to Void green..."
 find "$THEME_BASE" \( -name '*.css' -o -name '*.svg' -o -name '*.rc' -o -name 'gtkrc' \) -print0 \
   | xargs -0 "$RECOLOR"
 
@@ -190,9 +190,9 @@ echo ">>> Recoloring theme thumbnail PNGs..."
 "$RECOLOR" "$THEME_BASE/gtk-3.0/thumbnail.png" "$THEME_BASE/cinnamon/thumbnail.png"
 
 ###############################################################################
-# Recolor green icon PNGs to sage green
+# Recolor green icon PNGs to Void green
 ###############################################################################
-echo ">>> Recoloring icon PNGs to Nordic Void palette..."
+echo ">>> Recoloring icon PNGs to Void Nord palette..."
 find "$SCRIPT_DIR/icons/Void-Y" -name '*.png' ! -type l -print0 \
   | xargs -0 "$RECOLOR"
 
@@ -225,12 +225,12 @@ cat <<'DOCKCSS' >> "$THEME_BASE/cinnamon/cinnamon.css"
   .grouped-window-list-item-box:hover {
     background-color: rgba(255, 255, 255, 0.1); }
   .grouped-window-list-item-box:focus {
-    border-color: #6a8a6e;
+    border-color: #478061;
     background-color: transparent; }
   .grouped-window-list-item-box:active {
-    border-color: #6a8a6e; }
+    border-color: #478061; }
 .grouped-window-list-button-label {
-  background-color: #6a8a6e;
+  background-color: #478061;
   color: #ffffff;
   border-radius: 4px;
   padding: 4px 8px; }

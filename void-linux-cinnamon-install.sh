@@ -57,12 +57,38 @@ sudo xbps-install -Sy \
   xorg \
   lightdm lightdm-slick-greeter \
   xdg-desktop-portal xdg-desktop-portal-gtk \
-  xdg-user-dirs xdg-utils || true
+  xdg-user-dirs xdg-utils \
+  gnome-keyring libsecret || true
 
 # Ensure extensions directories exist (needed for Cinnamon extensions manager)
 sudo mkdir -p /usr/share/cinnamon/extensions
 mkdir -p "${HOME}/.local/share/cinnamon/extensions"
 
+
+# Configure PAM to auto-unlock gnome-keyring at login
+# This prevents the "login keyring did not unlock" prompt and is required for
+# apps that use libsecret (Epiphany, GNOME Online Accounts, etc.)
+for pam_file in /etc/pam.d/lightdm /etc/pam.d/system-local-login; do
+  if [ -f "$pam_file" ]; then
+    if ! grep -q 'pam_gnome_keyring.so' "$pam_file"; then
+      # Add auth (unlock) at end of auth stack, session (start daemon) at end of session stack
+      echo -e "\nauth      optional  pam_gnome_keyring.so" | sudo tee -a "$pam_file" > /dev/null
+      echo "session   optional  pam_gnome_keyring.so auto_start" | sudo tee -a "$pam_file" > /dev/null
+      echo "   Added gnome-keyring PAM hooks to $pam_file"
+    fi
+  fi
+done
+
+# gnome-keyring autostart files restrict to GNOME;Unity;MATE — add Cinnamon
+# so the secrets and pkcs11 components start (otherwise Epiphany etc. crash)
+for desktop_file in /etc/xdg/autostart/gnome-keyring-secrets.desktop \
+                     /etc/xdg/autostart/gnome-keyring-pkcs11.desktop \
+                     /etc/xdg/autostart/gnome-keyring-ssh.desktop; do
+  if [ -f "$desktop_file" ] && ! grep -q 'Cinnamon' "$desktop_file"; then
+    sudo sed -i 's/^OnlyShowIn=.*/&Cinnamon;/' "$desktop_file"
+    echo "   Added Cinnamon to OnlyShowIn in $(basename "$desktop_file")"
+  fi
+done
 
 ###############################################################################
 # Network, Session, Audio, Bluetooth, Printing
@@ -217,7 +243,7 @@ mkdir -p "${HOME}/.local/share/icons"
 cp -r "$SCRIPT_DIR/icons/Void-Y" "${HOME}/.local/share/icons/"
 
 ###############################################################################
-# Theme: Void-Y-Dark with sage green recolor + dock panel (pre-processed)
+# Theme: Void-Y-Dark with Void green recolor + dock panel (pre-processed)
 # See download-process-artwork.sh for how it was built.
 ###############################################################################
 echo ">>> Installing Void-Y-Dark theme..."
@@ -660,21 +686,21 @@ sudo xbps-install -Sy ghostty || true
 
 mkdir -p "${HOME}/.config/ghostty"
 cat <<'EOF' > "${HOME}/.config/ghostty/config"
-# Void Nord — Nord aesthetic shifted from polar blue to forest sage
+# Void Nord — Nord aesthetic shifted from polar blue to Void green
 #
 # Forest Night (backgrounds)
 #   #2b332d  #353f37  #404c42  #4c594e
 # Snow Moss (foregrounds)
 #   #cdd7cf  #dae3dc  #e8f0ea
-# Moss Frost (accent greens — replaces Nord's blues)
-#   #7a9e86  #6a8a6e  #5a7a5e  #4a6a52
+# Void Green (accent greens — replaces Nord's blues)
+#   #295340  #406551  #478061  #abc2ab
 # Aurora (harmonized warm colors)
-#   red #bf616a  orange #c88a6a  yellow #dbc07a  green #8aaa8e  purple #9a7a8e
+#   red #bf616a  orange #c88a6a  yellow #dbc07a  green #abc2ab  purple #9a7a8e
 
 background = #18181b
 background-opacity = 0.90
 foreground = #d4ddd6
-cursor-color = #6a8a6e
+cursor-color = #478061
 selection-background = #404c42
 selection-foreground = #e8f0ea
 
@@ -686,12 +712,12 @@ palette = 8=#4c594e
 palette = 1=#bf616a
 palette = 9=#d08770
 # Green
-palette = 2=#6a8a6e
-palette = 10=#8aaa8e
+palette = 2=#478061
+palette = 10=#abc2ab
 # Yellow
 palette = 3=#dbc07a
 palette = 11=#ebcb8b
-# Blue (teal-sage, no pure blue)
+# Blue (teal, no pure blue)
 palette = 4=#5a7a6e
 palette = 12=#7a9a8e
 # Magenta
@@ -701,8 +727,8 @@ palette = 13=#b48ead
 palette = 6=#7a9e86
 palette = 14=#8abaa0
 # White
-palette = 7=#cdd7cf
-palette = 15=#e8f0ea
+palette = 7=#d2d2d6
+palette = 15=#ececf0
 
 # Window
 window-theme = system
@@ -828,22 +854,43 @@ echo "   Cinnamon dconf settings applied."
 # Ref: https://flatpak.org/setup/Void%20Linux
 ###############################################################################
 echo ">>> Installing and configuring Flatpak..."
-sudo xbps-install -S -y flatpak
+sudo xbps-install -S -y flatpak gnome-software
 sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-sudo flatpak override --env=GTK_THEME=Adwaita:dark
+sudo flatpak override --env=GTK_THEME=Void-Y-Dark
+sudo flatpak override --filesystem=~/.local/share/themes:ro
+sudo flatpak override --filesystem=~/.local/share/icons:ro
+sudo flatpak override --filesystem=~/.config/gtk-3.0:ro
+sudo flatpak override --filesystem=~/.config/gtk-4.0:ro
+sudo flatpak override --filesystem=xdg-config/dconf:ro
 
 ###############################################################################
-# Profile Sync Daemon (PSD)
-# Syncs browser profiles to RAM, reducing disk I/O and speeding up browsers
+# System-wide dark theme
+# Ensures root/pkexec apps (GParted, etc.) and apps that read settings.ini
+# instead of dconf all use dark theme
 ###############################################################################
-echo ">>> Installing Profile Sync Daemon..."
-rm -rf /tmp/runit-services-psd
-git clone https://github.com/madand/runit-services /tmp/runit-services-psd
-sudo rm -rf /etc/sv/psd
-sudo mv /tmp/runit-services-psd/psd /etc/sv/
-sudo ln -sf /etc/sv/psd /var/service/
-sudo chmod +x /etc/sv/psd/*
-rm -rf /tmp/runit-services-psd
+echo ">>> Setting system-wide dark theme preferences..."
+
+sudo mkdir -p /etc/gtk-3.0 /etc/gtk-4.0
+
+sudo tee /etc/gtk-3.0/settings.ini > /dev/null <<'EOF'
+[Settings]
+gtk-application-prefer-dark-theme=1
+gtk-theme-name=Void-Y-Dark
+gtk-icon-theme-name=Void-Y
+EOF
+
+sudo cp /etc/gtk-3.0/settings.ini /etc/gtk-4.0/settings.ini
+
+mkdir -p ~/.config/gtk-3.0 ~/.config/gtk-4.0
+
+cat > ~/.config/gtk-3.0/settings.ini <<'EOF'
+[Settings]
+gtk-application-prefer-dark-theme=1
+gtk-theme-name=Void-Y-Dark
+gtk-icon-theme-name=Void-Y
+EOF
+
+cp ~/.config/gtk-3.0/settings.ini ~/.config/gtk-4.0/settings.ini
 
 ###############################################################################
 # Framework Laptop — AUTO-DETECT & FIXES
@@ -934,52 +981,30 @@ fi
 echo ">>> Configuring hibernate on lid close..."
 
 RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-SWAP_TOTAL_KB=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
-RAM_MB=$((RAM_KB / 1024))
-SWAP_MB=$((SWAP_TOTAL_KB / 1024))
+SWAP_KB=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
+if [ "$SWAP_KB" -lt "$RAM_KB" ]; then
+  echo "ERROR: Swap ($(($SWAP_KB/1024))MB) must be >= RAM ($(($RAM_KB/1024))MB) for hibernate." >&2
+  exit 1
+fi
 
-if [ "$SWAP_TOTAL_KB" -eq 0 ]; then
-  echo "   WARNING: No swap detected. Skipping hibernate configuration."
-elif [ "$SWAP_TOTAL_KB" -lt "$RAM_KB" ]; then
-  echo "   WARNING: Swap too small (${SWAP_MB}MB) for RAM (${RAM_MB}MB). Skipping hibernate."
-else
-  echo "   Swap OK: ${SWAP_MB}MB swap >= ${RAM_MB}MB RAM"
+# GRUB resume parameter
+SWAP_UUID=$(blkid -s UUID -o value "$(swapon --show=NAME --noheadings | head -1)")
+if [ -f /etc/default/grub ] && ! grep -q 'resume=' /etc/default/grub; then
+  sudo sed -i "s|^GRUB_CMDLINE_LINUX_DEFAULT=\"|GRUB_CMDLINE_LINUX_DEFAULT=\"resume=UUID=${SWAP_UUID} |" /etc/default/grub
+  sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || \
+  sudo grub-mkconfig -o /boot/efi/EFI/void/grub.cfg 2>/dev/null || true
+fi
 
-  # Configure GRUB with resume parameters
-  SWAP_PART=$(swapon --show=NAME --noheadings 2>/dev/null | head -1)
-  SWAP_DEV=""
-  if [ -n "$SWAP_PART" ]; then
-    SWAP_DEV="UUID=$(blkid -s UUID -o value "$SWAP_PART" 2>/dev/null || true)"
-  fi
+# Dracut resume module
+if [ ! -f /etc/dracut.conf.d/resume.conf ]; then
+  sudo mkdir -p /etc/dracut.conf.d
+  echo 'add_dracutmodules+=" resume "' | sudo tee /etc/dracut.conf.d/resume.conf > /dev/null
+  sudo xbps-reconfigure -f linux-mainline
+fi
 
-  if [ -n "$SWAP_DEV" ] && [ "$SWAP_DEV" != "UUID=" ]; then
-    RESUME_PARAM="resume=${SWAP_DEV}"
-    if [ -f /etc/default/grub ]; then
-      if ! grep -q 'resume=' /etc/default/grub; then
-        sudo sed -i "s|^GRUB_CMDLINE_LINUX_DEFAULT=\"|GRUB_CMDLINE_LINUX_DEFAULT=\"${RESUME_PARAM} |" /etc/default/grub
-        if [ -d /boot/grub ]; then
-          sudo grub-mkconfig -o /boot/grub/grub.cfg
-        elif [ -d /boot/efi/EFI ]; then
-          sudo grub-mkconfig -o /boot/efi/EFI/void/grub.cfg 2>/dev/null || \
-          sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
-        fi
-      fi
-    fi
-  fi
-
-  # Dracut: ensure resume module is included
-  if [ ! -f /etc/dracut.conf.d/resume.conf ]; then
-    sudo mkdir -p /etc/dracut.conf.d
-    echo 'add_dracutmodules+=" resume "' | sudo tee /etc/dracut.conf.d/resume.conf > /dev/null
-    sudo xbps-reconfigure -f linux-mainline
-  fi
-
-  # Lid close action is handled by Cinnamon's power settings (dconf),
-  # not elogind. No HandleLidSwitch config needed here.
-
-  # Polkit: allow wheel group to hibernate without password
-  sudo mkdir -p /etc/polkit-1/rules.d
-  cat <<'EOF' | sudo tee /etc/polkit-1/rules.d/10-enable-hibernate.rules > /dev/null
+# Polkit: allow wheel group to hibernate without password
+sudo mkdir -p /etc/polkit-1/rules.d
+cat <<'EOF' | sudo tee /etc/polkit-1/rules.d/10-enable-hibernate.rules > /dev/null
 polkit.addRule(function(action, subject) {
     if ((action.id == "org.freedesktop.login1.hibernate" ||
          action.id == "org.freedesktop.login1.hibernate-multiple-sessions" ||
@@ -990,8 +1015,7 @@ polkit.addRule(function(action, subject) {
     }
 });
 EOF
-  echo "   Hibernate on lid close configured."
-fi
+echo "   Hibernate on lid close configured."
 
 ###############################################################################
 # Fingerprint reader — auto-detect and configure
@@ -1055,12 +1079,11 @@ echo "   - Void-Y-Dark theme with dock-like bottom panel"
 echo "   - Void-Y icon theme"
 echo "   - Two panels: top bar + bottom dock (intellihide)"
 echo "   - Grouped Window List on bottom dock"
-echo "   - Sage green active-window indicator on dock"
+echo "   - Void green active-window indicator on dock"
 echo "   - Touchpad gestures (2/3/4 finger swipes)"
 echo "   - Hibernate on lid close (GRUB resume, dracut, elogind, polkit)"
 echo "   - Framework Laptop fixes (if detected)"
 echo "   - Flatpak + Flathub"
-echo "   - Profile Sync Daemon"
 echo "   - Void Linux wallpaper"
 echo "   - Ghostty terminal with Ctrl+C/V copy-paste"
 echo "   - Fingerprint reader (if detected)"
