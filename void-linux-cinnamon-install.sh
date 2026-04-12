@@ -38,11 +38,10 @@ echo ">>> Installing recommended packages..."
 sudo xbps-install -Sy curl wget git xz unzip zip nano vim gptfdisk gparted \
   mtools mlocate ntfs-3g fuse-exfat bash-completion \
   linux-mainline linux-mainline-headers \
-  ffmpeg htop zsh efibootmgr pciutils openssh \
-  sassc
+  ffmpeg htop zsh efibootmgr pciutils openssh
 
 # GVFS backends (network shares, MTP, photos, etc.)
-sudo xbps-install -y gvfs-smb samba gvfs-goa gvfs-gphoto2 gvfs-mtp \
+sudo xbps-install -y gvfs-smb samba gvfs-gphoto2 gvfs-mtp \
   gvfs-afc gvfs-afp
 
 # YubiKey / FIDO2 authentication support
@@ -56,14 +55,16 @@ sudo xbps-install -Sy \
   cinnamon-all \
   xorg \
   lightdm lightdm-slick-greeter \
-  xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-xapp \
-  xapps python3-xapp \
+  xdg-desktop-portal \              # D-Bus interface between sandboxed apps and the desktop
+  xdg-desktop-portal-gtk \          # GTK backend — file dialogs, printing for Flatpak apps
+  xdg-desktop-portal-gnome \        # GNOME backend — forwards accent-color to libadwaita apps
+  xdg-desktop-portal-xapp \         # XApp backend — color-scheme and screenshot portal for Cinnamon
+  xapps python3-xapp \              # XApp libraries used by Cinnamon portal and applets
   xdg-user-dirs xdg-utils \
-  gsettings-desktop-schemas \
-  gnome-keyring libsecret \
-  gnome-themes-extra \
-  gtk-engine-murrine \
-  gnome-online-accounts || true
+  gsettings-desktop-schemas \        # GSettings schemas for desktop-wide settings (themes, fonts, etc.)
+  gnome-keyring libsecret \          # Credential storage — used by browsers, git, Flatpak Secret portal
+  gnome-themes-extra \               # Adwaita GTK2/3 theme engine — needed for consistent dark theme
+  gtk-engine-murrine || true          # GTK2 theme engine — renders Mint/Void-Y GTK2 widgets
 
 # LightDM's default Xsession ends with 'exec $@' which starts the session
 # without a D-Bus bus, or uses dbus-launch which creates a /tmp/dbus-* socket.
@@ -332,9 +333,6 @@ sudo cp "$SCRIPT_DIR/artwork/void-night-background.png" \
   /usr/share/backgrounds/void/void-night-background.png
 
 VOID_WALL="/usr/share/backgrounds/void/void-night-background.png"
-if [ ! -s "$VOID_WALL" ]; then
-  echo "   (wallpaper copy failed — set manually)"
-fi
 
 ###############################################################################
 # Grouped Window List applet configuration
@@ -902,6 +900,7 @@ sudo mkdir -p /usr/share/xdg-desktop-portal
 cat <<'EOF' | sudo tee /usr/share/xdg-desktop-portal/x-cinnamon-portals.conf > /dev/null
 [preferred]
 default=xapp;gtk;
+org.freedesktop.impl.portal.Settings=gnome;gtk;
 org.freedesktop.impl.portal.Secret=gnome-keyring;
 EOF
 
@@ -929,7 +928,7 @@ sudo flatpak install -y --noninteractive flathub org.gtk.Gtk3theme.Adwaita-dark 
 ###############################################################################
 echo ">>> Setting system-wide dark theme preferences..."
 
-sudo mkdir -p /etc/gtk-3.0 /etc/gtk-4.0
+sudo mkdir -p /etc/gtk-3.0
 
 sudo tee /etc/gtk-3.0/settings.ini > /dev/null <<'EOF'
 [Settings]
@@ -938,9 +937,7 @@ gtk-theme-name=Void-Y-Dark
 gtk-icon-theme-name=Void-Y
 EOF
 
-sudo cp /etc/gtk-3.0/settings.ini /etc/gtk-4.0/settings.ini
-
-mkdir -p ~/.config/gtk-3.0 ~/.config/gtk-4.0
+mkdir -p ~/.config/gtk-3.0
 
 cat > ~/.config/gtk-3.0/settings.ini <<'EOF'
 [Settings]
@@ -948,8 +945,6 @@ gtk-application-prefer-dark-theme=1
 gtk-theme-name=Void-Y-Dark
 gtk-icon-theme-name=Void-Y
 EOF
-
-cp ~/.config/gtk-3.0/settings.ini ~/.config/gtk-4.0/settings.ini
 
 ###############################################################################
 # Framework Laptop — AUTO-DETECT & FIXES
@@ -1103,6 +1098,13 @@ echo ">>> Enabling services..."
 
 # Configure LightDM to use slick greeter
 sudo sed -i 's/^#\?greeter-session=.*/greeter-session=slick-greeter/' /etc/lightdm/lightdm.conf
+
+# Configure slick-greeter to use Void wallpaper
+sudo mkdir -p /etc/lightdm
+cat <<'EOF' | sudo tee /etc/lightdm/slick-greeter.conf > /dev/null
+[Greeter]
+background=/usr/share/backgrounds/void/void-night-background.png
+EOF
 
 sudo ln -sf /etc/sv/dbus /var/service/
 sudo ln -sf /etc/sv/elogind /var/service/

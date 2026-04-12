@@ -139,6 +139,7 @@ find themes/ -name '*.css' -o -name '*.rc' -o -name 'gtkrc' | \
 - **Wallpaper**: Was `void-spice-background.png`, renamed to `void-night-background.png`.
 - **Grayscale PNGs**: The C tool adds `PNG_TRANSFORM_GRAY_TO_RGB` to avoid buffer overruns on 1-2 channel images.
 - **libadwaita dark backgrounds**: All dark backgrounds maintain libadwaita's +4 blue channel offset convention. Neutral grays get the tint added; Mint-Y blueish darks get normalized to match. This applies to both text (hex/rgba tables) and PNG (low-saturation pixel handler) recoloring.
+- **D-Bus session bus for Flatpak**: LightDM's default Xsession either skips D-Bus or uses `dbus-launch` (socket in `/tmp/dbus-*`). Flatpak sandboxes expect the bus at `$XDG_RUNTIME_DIR/bus`. The install script patches `/etc/lightdm/Xsession` to start `dbus-daemon` at the correct path and propagates session env vars via `dbus-update-activation-environment`. Without this, Flatpak apps like Epiphany can't reach desktop portals.
 
 ## Upstream Sources
 
