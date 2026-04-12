@@ -56,9 +56,43 @@ sudo xbps-install -Sy \
   cinnamon-all \
   xorg \
   lightdm lightdm-slick-greeter \
-  xdg-desktop-portal xdg-desktop-portal-gtk \
+  xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-xapp \
+  xapps python3-xapp \
   xdg-user-dirs xdg-utils \
-  gnome-keyring libsecret || true
+  gsettings-desktop-schemas \
+  gnome-keyring libsecret \
+  gnome-themes-extra \
+  gtk-engine-murrine \
+  gnome-online-accounts || true
+
+# LightDM's default Xsession ends with 'exec $@' which starts the session
+# without a D-Bus bus, or uses dbus-launch which creates a /tmp/dbus-* socket.
+# Flatpak sandboxes expect the bus at $XDG_RUNTIME_DIR/bus.
+# Replace the final exec line with a block that starts dbus-daemon at the
+# correct path before exec'ing the session.
+sudo sed -i '/^exec .*\$@/,$ d' /etc/lightdm/Xsession
+cat <<'DBUS_BLOCK' | sudo tee -a /etc/lightdm/Xsession > /dev/null
+# Start D-Bus session bus at $XDG_RUNTIME_DIR/bus for Flatpak sandboxes
+if [ -n "$XDG_RUNTIME_DIR" ] && [ -d "$XDG_RUNTIME_DIR" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+    if [ ! -e "$XDG_RUNTIME_DIR/bus" ]; then
+        dbus-daemon --session \
+            --address="$DBUS_SESSION_BUS_ADDRESS" \
+            --nofork --nopidfile --syslog-only &
+    fi
+fi
+
+# Propagate session environment into D-Bus activation environment so that
+# D-Bus-activated services (portals, flatpak-session-helper, gnome-keyring)
+# inherit DISPLAY, XDG_CURRENT_DESKTOP, etc.
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment --systemd \
+        DBUS_SESSION_BUS_ADDRESS DISPLAY XAUTHORITY \
+        XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_DATA_DIRS
+fi
+
+exec "$@"
+DBUS_BLOCK
 
 # Ensure extensions directories exist (needed for Cinnamon extensions manager)
 sudo mkdir -p /usr/share/cinnamon/extensions
@@ -703,7 +737,7 @@ background = #18181b
 background-opacity = 0.90
 foreground = #d4ddd6
 cursor-color = #478061
-selection-background = #404c42
+selection-background = #478061
 selection-foreground = #e8f0ea
 
 # Palette — 16 ANSI colors
@@ -825,6 +859,9 @@ swipe-up-3='TOGGLE_OVERVIEW::::start'
 swipe-up-4='VOLUME_UP::end'
 tap-3='MEDIA_PLAY_PAUSE::end'
 
+[org/x/apps/portal]
+color-scheme='prefer-dark'
+
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
 accent-color='green'
@@ -856,7 +893,7 @@ echo "   Cinnamon dconf settings applied."
 # Ref: https://flatpak.org/setup/Void%20Linux
 ###############################################################################
 echo ">>> Installing and configuring Flatpak..."
-sudo xbps-install -S -y flatpak gnome-software
+sudo xbps-install -S -y flatpak
 sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 # XDG Desktop Portal config for Cinnamon — tells portals to use the GTK backend
@@ -867,12 +904,23 @@ cat <<'EOF' | sudo tee /usr/share/xdg-desktop-portal/x-cinnamon-portals.conf > /
 default=xapp;gtk;
 org.freedesktop.impl.portal.Secret=gnome-keyring;
 EOF
-sudo flatpak override --env=GTK_THEME=Void-Y-Dark
-sudo flatpak override --filesystem=~/.local/share/themes:ro
-sudo flatpak override --filesystem=~/.local/share/icons:ro
-sudo flatpak override --filesystem=~/.config/gtk-3.0:ro
-sudo flatpak override --filesystem=~/.config/gtk-4.0:ro
-sudo flatpak override --filesystem=xdg-config/dconf:ro
+
+# Ensure Flatpak exports are in XDG_DATA_DIRS for app menu integration
+if [ ! -f /etc/profile.d/flatpak.sh ]; then
+    cat <<'FPSH' | sudo tee /etc/profile.d/flatpak.sh > /dev/null
+if [ -d /var/lib/flatpak/exports/share ]; then
+    XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    XDG_DATA_DIRS="/var/lib/flatpak/exports/share:${XDG_DATA_DIRS}"
+fi
+if [ -d "$HOME/.local/share/flatpak/exports/share" ]; then
+    XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:${XDG_DATA_DIRS}"
+fi
+export XDG_DATA_DIRS
+FPSH
+fi
+
+# Install Adwaita-dark Gtk3 theme runtime so Flatpak apps render dark theme
+sudo flatpak install -y --noninteractive flathub org.gtk.Gtk3theme.Adwaita-dark || true
 
 ###############################################################################
 # System-wide dark theme
